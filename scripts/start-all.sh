@@ -6,7 +6,13 @@ set -e
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+echo "[LABSOFT] Starting Docker services (MySQL + Redis)..."
+docker compose up -d 2>&1 | grep -v "^$"
+echo ""
+
 echo "[LABSOFT] Starting all services..."
+echo "  - MySQL:  localhost:3306"
+echo "  - Redis:  localhost:6379"
 echo "  - Website (Next.js): http://localhost:3000"
 echo "  - Backend API (Express): http://localhost:4000"
 echo "  - Mobile App (Expo): see Expo CLI output"

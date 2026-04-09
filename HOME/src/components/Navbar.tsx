@@ -17,8 +17,8 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-primary/95 backdrop-blur-sm shadow-md">
       <div className="max-w-6xl mx-auto px-4 flex items-center justify-between h-16">
-        <a href="#hero" className="text-white font-bold text-xl tracking-wide">
-          LABSOFT
+        <a href="#hero" className="flex items-center gap-2">
+          <img src="/images/logo.png" alt="LABSOFT" className="h-10" />
         </a>
 
         {/* Desktop links */}

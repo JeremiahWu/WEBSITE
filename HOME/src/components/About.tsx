@@ -15,17 +15,14 @@ export default function About() {
 
         <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto">
           {[1, 2, 3].map((n) => (
-            <div
+            <img
               key={n}
-              className="aspect-square rounded-xl bg-gradient-to-br from-primary/20 to-primary-light/20 flex items-center justify-center"
-            >
-              <span className="text-4xl text-primary/40 font-bold">{n}</span>
-            </div>
+              src={`/images/about/${n}.jpeg`}
+              alt={`关于我们 ${n}`}
+              className="aspect-square rounded-xl object-cover"
+            />
           ))}
         </div>
-        <p className="text-sm text-muted/60 mt-4">
-          将照片放入 public/images/about/ 目录即可展示
-        </p>
       </div>
     </section>
   );

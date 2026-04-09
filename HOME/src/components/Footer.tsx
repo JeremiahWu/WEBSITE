@@ -24,9 +24,18 @@ export default function Footer() {
           </div>
           <div>
             <h3 className="font-bold text-lg mb-3">关注我们</h3>
-            <p className="text-white/60 text-sm">
-              微信公众号 &middot; QQ &middot; 微博
-            </p>
+            <div className="flex items-center justify-center md:justify-start gap-4 mt-2">
+              <img
+                src="/images/qr.jpg"
+                alt="微信公众号"
+                className="w-24 h-24 rounded-lg"
+              />
+              <img
+                src="/images/qq.png"
+                alt="QQ"
+                className="w-10 h-10"
+              />
+            </div>
           </div>
         </div>
       </div>

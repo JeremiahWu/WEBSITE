@@ -15,38 +15,54 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="feed"
         options={{
-          title: "首页",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
+          title: "动态",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "newspaper" : "newspaper-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
       <Tabs.Screen
-        name="services"
+        name="ai"
         options={{
-          title: "服务",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="grid" size={size} color={color} />
+          title: "AI",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
       <Tabs.Screen
-        name="about"
+        name="blog"
         options={{
-          title: "关于",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+          title: "博客",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "book" : "book-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
       <Tabs.Screen
-        name="contact"
+        name="settings"
         options={{
-          title: "联系",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="mail" size={size} color={color} />
+          title: "设置",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "settings" : "settings-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />

@@ -14,6 +14,7 @@
     "dev:app": "npm run start --workspace=APPS",
     "build:web": "npm run build --workspace=HOME",
     "build:api": "npm run build --workspace=CORE",
+    "dev:docker": "docker compose up -d",
     "dev": "npm run dev:web"
   }
 }
