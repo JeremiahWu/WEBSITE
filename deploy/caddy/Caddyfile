@@ -1,0 +1,41 @@
+# Caddy configuration for Next.js website with FRPC reverse proxy
+# Replace example.com with your actual domain
+
+example.com {
+    # Reverse proxy to Next.js app (running on port 3000)
+    reverse_proxy http://127.0.0.1:3000 {
+        # HTTP/2 support
+        transport http {
+            versions 2
+        }
+
+        # Preserve host header
+        header_up Host {upstream_hostport}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Security headers
+    header {
+        -Server
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+
+    # Metrics
+    metrics /metrics
+}
+
+# Auto-redirect HTTP to HTTPS
+:80 {
+    redir https://{host}{uri} 301
+}

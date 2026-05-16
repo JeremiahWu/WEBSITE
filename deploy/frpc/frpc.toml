@@ -1,0 +1,32 @@
+# FRPC Configuration for reverse proxy through cloud server
+# Replace values with your actual FRPC server configuration
+
+serverAddr = "cloud-server-ip-or-domain"  # 替换为云服务器地址
+serverPort = 7000                          # FRPC服务器端口
+auth.token = "your-frpc-token"             # FRPC认证token
+
+# HTTP reverse proxy for website
+[[proxies]]
+name = "website-http"
+type = "http"
+localIP = "127.0.0.1"
+localPort = 3000                          # Next.js默认端口
+customDomains = ["your-domain.com"]       # 替换为你的域名
+# plugin = "proxy_pool"                   # 可选：代理池模式
+# plugin_mode = "random"
+
+# HTTPS reverse proxy (if needed)
+# [[proxies]]
+# name = "website-https"
+# type = "https"
+# localIP = "127.0.0.1"
+# localPort = 3000
+# customDomains = ["your-domain.com"]
+
+# TCP proxy for SSH access (optional)
+# [[proxies]]
+# name = "ssh"
+# type = "tcp"
+# localIP = "127.0.0.1"
+# localPort = 22
+# remotePort = 6000
