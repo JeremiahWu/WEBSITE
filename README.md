@@ -313,4 +313,48 @@ docker-compose down -v
 
 ---
 
+## 云服务器反向代理 (Caddy)
+
+在云服务器上安装 Caddy 并配置 `/etc/caddy/Caddyfile`：
+
+```caddy
+api.laowu.cafe {
+    reverse_proxy http://192.168.124.23:8080
+}
+
+www.laowu.cafe {
+    reverse_proxy http://192.168.124.23:3000
+}
+
+:80 {
+    redir https://{host}{uri} 301
+}
+```
+
+Caddy 会自动为两个域名申请 Let's Encrypt HTTPS 证书。
+
+完整 Caddy 配置文件参见项目根目录 `CORE/deploy/caddy/Caddyfile`。
+
+## 相关项目
+
+| 项目 | 说明 | 路径 |
+|------|------|------|
+| CORE | 后端API (Spring Boot) | `../CORE` |
+| LabApps | 跨平台APP (KMP) | `../LabApps` |
+| WEBSITE | 官网 (Next.js) | 当前项目 |
+
+## 内网服务器中间件
+
+基于 `env.txt` 配置的内网中间件 (192.168.124.23)：
+
+| 服务 | 端口 |
+|------|------|
+| MySQL | 3306 |
+| Redis | 6379 |
+| MongoDB | 27017 |
+| Elasticsearch | 9200 |
+| MinIO | 9000 (API) / 9001 (Console) |
+
+---
+
 © 2013-2026 老吴咖啡实验室 LABSOFT
