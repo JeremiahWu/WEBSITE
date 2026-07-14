@@ -2,261 +2,138 @@
 set -e
 
 # ================================
-# Server Deployment Script
-# Deploy website to Ubuntu server with Caddy and FRPC
+# Cafelab Website - Local Deploy
+# Deploy website container on this machine
 # ================================
 
-# Configuration - Edit these for your environment
-HARBOR_REGISTRY="${HARBOR_REGISTRY:-harbor.example.com}"      # Harbor地址
-PROJECT="${PROJECT:-labsoft}"                                  # Harbor项目名
-IMAGE_NAME="${IMAGE_NAME:-website}"                            # 镜像名称
-TAG="${TAG:-latest}"                                           # 镜像标签
-SERVER_IP="${SERVER_IP:-192.168.124.100}"                      # 目标服务器IP
-SERVER_SSH_USER="${SERVER_SSH_USER:-root}"                     # SSH用户
-SERVER_SSH_KEY="${SERVER_SSH_KEY:-~/.ssh/id_rsa}"              # SSH私钥路径
-NGINX_SERVER_NAME="${NGINX_SERVER_NAME:-example.com}"          # 域名
-FRPC_SERVER_ADDR="${FRPC_SERVER_ADDR:-frpc.example.com:7000}"  # FRPC服务器地址
-FRPC_TOKEN="${FRPC_TOKEN:-your-frpc-token}"                    # FRPC认证token
-FRPC_CUSTOM_DOMAIN="${FRPC_CUSTOM_DOMAIN:-website.example.com}" # FRPC自定义域名
+# Configuration
+REGISTRY="${REGISTRY:-localhost:5000}"
+IMAGE_NAME="${IMAGE_NAME:-cafelab-website}"
+TAG="${TAG:-latest}"
+CONTAINER_NAME="${CONTAINER_NAME:-cafelab-website}"
+HOST_PORT="${HOST_PORT:-3000}"
 
-# Colors for output
+# FRP Configuration (for tunnel to cloud server)
+FRPS_SERVER="${FRPS_SERVER:-}"           # Cloud server IP/domain
+FRPS_PORT="${FRPS_PORT:-7000}"
+FRP_TOKEN="${FRP_TOKEN:-}"
+FRP_CUSTOM_DOMAIN="${FRP_CUSTOM_DOMAIN:-laowu.cafe}"
+
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-echo -e "${GREEN}=== Deploying Website to Server ===${NC}"
-echo "Registry: $HARBOR_REGISTRY"
-echo "Image: $PROJECT/$IMAGE_NAME:$TAG"
-echo "Server: $SERVER_IP"
-echo "Domain: $NGINX_SERVER_NAME"
-echo "FRPC Domain: $FRPC_CUSTOM_DOMAIN"
+FULL_IMAGE="${REGISTRY}/${IMAGE_NAME}:${TAG}"
+
+echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}  Cafelab Website - Local Deploy${NC}"
+echo -e "${GREEN}========================================${NC}"
+echo ""
+echo -e "Image:        ${YELLOW}${FULL_IMAGE}${NC}"
+echo -e "Container:    ${YELLOW}${CONTAINER_NAME}${NC}"
+echo -e "Host Port:    ${YELLOW}${HOST_PORT}${NC}"
 echo ""
 
-# Check if docker is installed on local machine
-if ! command -v docker &> /dev/null; then
-    echo -e "${RED}Error: Docker is not installed${NC}"
-    exit 1
+# Ensure we're in the WEBSITE directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WEBSITE_DIR="$(dirname "$SCRIPT_DIR")"
+cd "$WEBSITE_DIR"
+
+# ─── Step 1: Pull latest image ──────────────────────────────────────────
+echo -e "${YELLOW}[1/5] Pulling latest image...${NC}"
+docker pull "$FULL_IMAGE"
+echo -e "${GREEN}  ✓ Image pulled${NC}"
+
+# ─── Step 2: Stop and remove existing container ─────────────────────────
+echo -e "${YELLOW}[2/5] Stopping existing container...${NC}"
+if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+    docker stop "$CONTAINER_NAME" 2>/dev/null || true
+    docker rm "$CONTAINER_NAME" 2>/dev/null || true
+    echo -e "${GREEN}  ✓ Old container removed${NC}"
+else
+    echo -e "${GREEN}  ✓ No existing container${NC}"
 fi
 
-# Login to Harbor
-echo -e "${YELLOW}Login to Harbor...${NC}"
-if [ -z "$HARBOR_PASSWORD" ]; then
-    echo -e "${RED}Error: HARBOR_PASSWORD environment variable is not set${NC}"
-    exit 1
-fi
-docker login "$HARBOR_REGISTRY" -u "${HARBOR_USER:-admin}" -p "$HARBOR_PASSWORD"
+# ─── Step 3: Start new container ────────────────────────────────────────
+echo -e "${YELLOW}[3/5] Starting website container...${NC}"
+docker run -d \
+    --name "$CONTAINER_NAME" \
+    --restart=always \
+    -p "${HOST_PORT}:3000" \
+    -e NODE_ENV=production \
+    -e PORT=3000 \
+    "$FULL_IMAGE"
 
-# Pull Docker image
-echo -e "${YELLOW}Pulling Docker image...${NC}"
-docker pull "$HARBOR_REGISTRY/$PROJECT/$IMAGE_NAME:$TAG"
+echo -e "${GREEN}  ✓ Container started${NC}"
 
-# Create local deployment manifest
-echo -e "${YELLOW}Creating deployment configuration...${NC}"
-mkdir -p ./deploy/config
+# ─── Step 4: Setup FRPC tunnel ──────────────────────────────────────────
+echo -e "${YELLOW}[4/5] Setting up FRPC tunnel...${NC}"
 
-# Create docker-compose.yml
-cat > ./deploy/docker-compose.yml << EOF
-version: '3.8'
+if [ -n "$FRPS_SERVER" ] && [ -n "$FRP_TOKEN" ]; then
+    FRPC_DIR="/opt/frpc-website"
+    mkdir -p "$FRPC_DIR"
 
-services:
-  website:
-    image: ${HARBOR_REGISTRY}/${PROJECT}/${IMAGE_NAME}:${TAG}
-    container_name: website
-    restart: always
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-    ports:
-      - "3000:3000"
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    # Stop existing frpc-website container if any
+    docker stop frpc-website 2>/dev/null || true
+    docker rm frpc-website 2>/dev/null || true
 
-  frpc:
-    image: snowdreamtech/frpc:latest
-    container_name: frpc
-    restart: always
-    network_mode: host
-    environment:
-      - FRPC_SERVER_ADDR=${FRPC_SERVER_ADDR}
-      - FRPC_TOKEN=${FRPC_TOKEN}
-      - FRPC_CUSTOM_DOMAIN=${FRPC_CUSTOM_DOMAIN}
-    volumes:
-      - ./config/frpc.toml:/frpc/frpc.toml:ro
-
-  caddy:
-    image: caddy:2-alpine
-    container_name: caddy
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./config/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-
-volumes:
-  caddy_data:
-  caddy_config:
-EOF
-
-# Create frpc.toml
-cat > ./deploy/config/frpc.toml << EOF
-serverAddr = "${FRPC_SERVER_ADDR%:*}"
-serverPort = 7000
-auth.token = "${FRPC_TOKEN}"
+    # Generate frpc config
+    cat > "$FRPC_DIR/frpc.toml" << FRPC_EOF
+serverAddr = "${FRPS_SERVER}"
+serverPort = ${FRPS_PORT}
+auth.token = "${FRP_TOKEN}"
 
 [[proxies]]
 name = "website-http"
 type = "http"
 localIP = "127.0.0.1"
 localPort = 3000
-customDomains = ["${FRPC_CUSTOM_DOMAIN}"]
-EOF
+customDomains = ["${FRP_CUSTOM_DOMAIN}", "www.${FRP_CUSTOM_DOMAIN}"]
+FRPC_EOF
 
-# Create Caddyfile
-cat > ./deploy/config/Caddyfile << EOF
-${NGINX_SERVER_NAME} {
-    reverse_proxy http://127.0.0.1:3000 {
-        # Enable HTTP/2
-        transport http {
-            versions 2
-        }
-    }
+    # Start frpc as a Docker container (network=host to reach localhost:3000)\
+    docker run -d \
+        --name frpc-website \
+        --restart=always \
+        --entrypoint frpc \
+        --network=host \
+        -v "$FRPC_DIR/frpc.toml":/frpc/frpc.toml:ro \
+        snowdreamtech/frpc:latest \
+        -c /frpc/frpc.toml
 
-    # Security headers
-    header {
-        -Server
-        X-Frame-Options "DENY"
-        X-Content-Type-Options "nosniff"
-        X-XSS-Protection "1; mode=block"
-    }
-
-    # Logging
-    log {
-        output file /var/log/caddy/access.log
-        format json
-    }
-}
-
-# Redirect HTTP to HTTPS
-:80 {
-    redir https://{host}{uri} 301
-}
-EOF
-
-echo -e "${GREEN}Local configuration created in ./deploy/${NC}"
-
-# Deploy to server via SSH
-echo ""
-echo -e "${YELLOW}Deploying to server via SSH...${NC}"
-
-# Create deployment script for remote server
-REMOTE_SCRIPT=$(cat << 'SCRIPT_EOF'
-#!/bin/bash
-set -e
-
-HARBOR_REGISTRY="$1"
-PROJECT="$2"
-IMAGE_NAME="$3"
-TAG="$4"
-HARBOR_USER="$5"
-HARBOR_PASSWORD="$6"
-NGINX_SERVER_NAME="$7"
-FRPC_SERVER_ADDR="$8"
-FRPC_TOKEN="$9"
-FRPC_CUSTOM_DOMAIN="${10}"
-
-echo "=== Server-side Deployment ==="
-echo "Registry: $HARBOR_REGISTRY"
-echo "Image: $PROJECT/$IMAGE_NAME:$TAG"
-echo "Domain: $NGINX_SERVER_NAME"
-echo ""
-
-# Update system
-echo "Updating system packages..."
-apt-get update -y
-apt-get upgrade -y
-
-# Install Docker if not exists
-if ! command -v docker &> /dev/null; then
-    echo "Installing Docker..."
-    curl -fsSL https://get.docker.com -o /tmp/install-docker.sh
-    sh /tmp/install-docker.sh
-    usermod -aG docker deploy 2>/dev/null || true
+    echo -e "${GREEN}  ✓ FRPC tunnel configured${NC}"
+    echo -e "    FRPS Server: ${YELLOW}${FRPS_SERVER}:${FRPS_PORT}${NC}"
+else
+    echo -e "${YELLOW}  ⚠ FRPS_SERVER and FRP_TOKEN not set — skipping FRPC setup${NC}"
+    echo "    Set them to auto-configure the tunnel:"
+    echo "      export FRPS_SERVER=<your-cloud-server-ip>"
+    echo "      export FRP_TOKEN=<your-frp-token>"
 fi
 
-# Install Docker Compose if not exists
-if ! command -v docker-compose &> /dev/null; then
-    echo "Installing Docker Compose..."
-    curl -SL https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
-    chmod +x /usr/local/bin/docker-compose
+# ─── Step 5: Verify deployment ──────────────────────────────────────────
+echo -e "${YELLOW}[5/5] Verifying deployment...${NC}"
+sleep 3
+
+if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+    echo -e "${GREEN}  ✓ Container is running${NC}"
+    echo ""
+    echo -e "${GREEN}========================================${NC}"
+    echo -e "${GREEN}  Deploy Complete!${NC}"
+    echo -e "${GREEN}========================================${NC}"
+    echo ""
+    echo -e "Website:      ${GREEN}http://localhost:${HOST_PORT}${NC}"
+    echo -e "Container:    ${GREEN}${CONTAINER_NAME}${NC}"
+    echo ""
+    echo -e "Useful commands:"
+    echo -e "  View logs:    ${YELLOW}docker logs -f ${CONTAINER_NAME}${NC}"
+    echo -e "  Restart:      ${YELLOW}docker restart ${CONTAINER_NAME}${NC}"
+    echo -e "  Stop:         ${YELLOW}docker stop ${CONTAINER_NAME}${NC}"
+else
+    echo -e "${RED}  ✗ Container failed to start!${NC}"
+    echo ""
+    echo "Check logs:"
+    docker logs "$CONTAINER_NAME" 2>/dev/null || echo "  No logs available"
+    exit 1
 fi
-
-# Create directories
-mkdir -p /opt/website/config
-
-# Pull Docker image
-echo "Pulling Docker image..."
-docker login "$HARBOR_REGISTRY" -u "$HARBOR_USER" -p "$HARBOR_PASSWORD"
-docker pull "$HARBOR_REGISTRY/$PROJECT/$IMAGE_NAME:$TAG"
-
-# Stop and remove existing containers
-echo "Stopping existing containers..."
-docker-compose -f /opt/website/docker-compose.yml down 2>/dev/null || true
-
-# Deploy new containers
-echo "Deploying new containers..."
-cd /opt/website
-docker-compose -f /opt/website/docker-compose.yml up -d
-
-# Wait for services to be ready
-echo "Waiting for services to start..."
-sleep 10
-
-# Verify deployment
-echo "Verifying deployment..."
-docker-compose -f /opt/website/docker-compose.yml ps
-
-echo ""
-echo "=== Deployment Complete ==="
-echo "Website should be available at: https://$NGINX_SERVER_NAME"
-echo "FRPC domain: $FRPC_CUSTOM_DOMAIN"
-SCRIPT_EOF
-)
-
-# Upload configuration files to server
-echo "Uploading configuration files..."
-ssh -i "$SERVER_SSH_KEY" -o StrictHostKeyChecking=no "${SERVER_SSH_USER}@${SERVER_IP}" << "UPLOAD_EOF"
-mkdir -p /opt/website/config
-UPLOAD_EOF
-
-# Copy docker-compose.yml
-scp -i "$SERVER_SSH_KEY" -o StrictHostKeyChecking=no ./deploy/docker-compose.yml \
-    "${SERVER_SSH_USER}@${SERVER_IP}:/opt/website/docker-compose.yml"
-
-# Copy frpc.toml
-scp -i "$SERVER_SSH_KEY" -o StrictHostKeyChecking=no ./deploy/config/frpc.toml \
-    "${SERVER_SSH_USER}@${SERVER_IP}:/opt/website/config/frpc.toml"
-
-# Copy Caddyfile
-scp -i "$SERVER_SSH_KEY" -o StrictHostKeyChecking=no ./deploy/config/Caddyfile \
-    "${SERVER_SSH_USER}@${SERVER_IP}:/opt/website/config/Caddyfile"
-
-# Execute remote deployment script
-echo "Executing remote deployment..."
-ssh -i "$SERVER_SSH_KEY" -o StrictHostKeyChecking=no -t "${SERVER_SSH_USER}@${SERVER_IP}" \
-    "/bin/bash -c '$REMOTE_SCRIPT'" \
-    "$HARBOR_REGISTRY" "$PROJECT" "$IMAGE_NAME" "$TAG" \
-    "${HARBOR_USER:-admin}" "$HARBOR_PASSWORD" \
-    "$NGINX_SERVER_NAME" "$FRPC_SERVER_ADDR" "$FRPC_TOKEN" "$FRPC_CUSTOM_DOMAIN"
-
-echo ""
-echo -e "${GREEN}=== All Done ===${NC}"
-echo "Website deployed successfully!"
-echo "Access your website at: https://${NGINX_SERVER_NAME}"

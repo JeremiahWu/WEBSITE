@@ -1,3 +1,8 @@
+# ================================
+# Cafelab Website - Docker Image
+# Next.js 14 with standalone output
+# ================================
+
 # Build stage
 FROM node:20-alpine AS builder
 
@@ -12,7 +17,7 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the application (standalone output enabled in next.config.mjs)
 RUN npm run build
 
 # Production stage
@@ -24,11 +29,14 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001
 
-# Copy built assets from builder stage
+# Copy standalone server (includes only production node_modules)
+COPY --from=builder /app/.next/standalone ./
+
+# Copy static assets (referenced by standalone server at ../.next/static)
+COPY --from=builder /app/.next/static ./.next/static
+
+# Copy public assets
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
 
 # Set ownership
 RUN chown -R nextjs:nodejs /app
@@ -43,5 +51,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
 
-# Start the application
-CMD ["npm", "start"]
+# Start the application (standalone server.js)
+CMD ["node", "server.js"]

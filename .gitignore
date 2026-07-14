@@ -147,3 +147,22 @@ vite.config.ts.timestamp-*
 # Uploads
 src/uploads/*
 !src/uploads/.gitkeep
+
+# ─── Docker ──────────────────────────────────────────
+# Docker build artifacts
+.docker/
+*.dockerignore
+
+# ─── Deployment ──────────────────────────────────────
+# Generated deployment configs (contain secrets)
+deploy/config/
+deploy/docker-compose.yml
+deployment-manifest.yaml
+server-deploy.sh
+
+# FRP config with real credentials (templates are tracked)
+*.frpc.toml.bak
+*.Caddyfile.bak
+
+# Local deployment state
+/opt/frpc-website/

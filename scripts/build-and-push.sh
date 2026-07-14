@@ -2,235 +2,77 @@
 set -e
 
 # ================================
-# CI/CD Build and Push Script
-# Build Next.js app and push to Harbor/Docker Hub
+# Cafelab Website - Build & Push
+# Build Docker image and push to local registry (localhost:5000)
 # ================================
 
 # Configuration
-REGISTRY="${REGISTRY:-harbor.example.com}"      # Harbor地址或Docker Hub
-PROJECT="${PROJECT:-labsoft}"                   # Harbor项目名或Docker Hub用户名
-IMAGE_NAME="${IMAGE_NAME:-website}"             # 镜像名称
-TAG="${TAG:-latest}"                            # 镜像标签，CI中通常用commit SHA
-TARGET_SERVER="${TARGET_SERVER:-192.168.124.100}"  # 目标服务器IP
+REGISTRY="${REGISTRY:-localhost:5000}"
+IMAGE_NAME="${IMAGE_NAME:-cafelab-website}"
+TAG="${TAG:-latest}"
+TIMESTAMP_TAG=$(date '+%Y%m%d-%H%M%S')
 
-# Login to registry
-echo "Login to registry: $REGISTRY"
-echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY" -u "$REGISTRY_USER" --password-stdin
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
-# Get commit information
-COMMIT_SHA="${GIT_COMMIT:-$(git rev-parse HEAD)}"
-SHORT_COMMIT="${COMMIT_SHA:0:8}"
-BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+FULL_IMAGE="${REGISTRY}/${IMAGE_NAME}:${TAG}"
+FULL_IMAGE_TS="${REGISTRY}/${IMAGE_NAME}:${TIMESTAMP_TAG}"
 
-# Tag the image
-IMAGE_PATH="${REGISTRY}/${PROJECT}/${IMAGE_NAME}"
-FULL_IMAGE="${IMAGE_PATH}:${TAG}"
-FULL_IMAGE_SHA="${IMAGE_PATH}:${SHORT_COMMIT}"
+echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}  Cafelab Website - Build & Push${NC}"
+echo -e "${GREEN}========================================${NC}"
+echo ""
+echo -e "Registry:     ${YELLOW}${REGISTRY}${NC}"
+echo -e "Image:        ${YELLOW}${IMAGE_NAME}${NC}"
+echo -e "Tag:          ${YELLOW}${TAG}${NC}"
+echo -e "Timestamp:    ${YELLOW}${TIMESTAMP_TAG}${NC}"
+echo ""
 
-echo "Building image: $FULL_IMAGE"
+# Ensure we're in the WEBSITE directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WEBSITE_DIR="$(dirname "$SCRIPT_DIR")"
+cd "$WEBSITE_DIR"
 
-# Build the Docker image
+echo -e "${YELLOW}[1/4] Checking local registry...${NC}"
+if ! curl -s "http://${REGISTRY}/v2/_catalog" > /dev/null 2>&1; then
+    echo -e "${RED}Error: Local registry at ${REGISTRY} is not accessible${NC}"
+    echo ""
+    echo "Start it with:"
+    echo "  docker run -d --name registry --restart=always -p 5000:5000 registry:2"
+    exit 1
+fi
+echo -e "${GREEN}  ✓ Registry is reachable${NC}"
+
+echo -e "${YELLOW}[2/4] Building Docker image...${NC}"
 docker build \
-    --build-arg BUILD_NUMBER="${BUILD_NUMBER:-1}" \
-    --build-arg COMMIT_SHA="${COMMIT_SHA}" \
-    --build-arg BUILD_TIME="${BUILD_TIME}" \
     -t "$FULL_IMAGE" \
-    -t "$FULL_IMAGE_SHA" \
+    -t "$FULL_IMAGE_TS" \
+    -t "${IMAGE_NAME}:${TAG}" \
     .
 
-# Push to registry
-echo "Pushing image to registry..."
+echo -e "${GREEN}  ✓ Build complete${NC}"
+
+echo -e "${YELLOW}[3/4] Pushing to local registry...${NC}"
 docker push "$FULL_IMAGE"
-docker push "$FULL_IMAGE_SHA"
+docker push "$FULL_IMAGE_TS"
 
-# Create deployment manifest
-cat > deployment-manifest.yaml << EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: harbor-credentials
-  namespace: default
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: ${DOCKER_CONFIG_BASE64:-}
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: website
-  namespace: default
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: website
-  template:
-    metadata:
-      labels:
-        app: website
-    spec:
-      containers:
-      - name: website
-        image: ${FULL_IMAGE_SHA}
-        ports:
-        - containerPort: 3000
-        env:
-        - name: NODE_ENV
-          value: production
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /api/health
-            port: 3000
-          initialDelaySeconds: 30
-          periodSeconds: 30
-        readinessProbe:
-          httpGet:
-            path: /api/health
-            port: 3000
-          initialDelaySeconds: 5
-          periodSeconds: 10
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: website-service
-  namespace: default
-spec:
-  selector:
-    app: website
-  ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 3000
-  type: ClusterIP
-EOF
+echo -e "${GREEN}  ✓ Push complete${NC}"
 
-echo "Deployment manifest created: deployment-manifest.yaml"
-
-# Create deploy script for target server
-cat > server-deploy.sh << 'DEPLOY_EOF'
-#!/bin/bash
-set -e
-
-# Configuration
-HARBOR_REGISTRY="${HARBOR_REGISTRY:-harbor.example.com}"
-PROJECT="${PROJECT:-labsoft}"
-IMAGE_NAME="${IMAGE_NAME:-website}"
-TAG="${TAG:-latest}"
-SERVER_IP="${SERVER_IP:-192.168.124.100}"
-NGINX_SERVER_NAME="${NGINX_SERVER_NAME:-your-domain.com}"
-FRPC_SERVER_ADDR="${FRPC_SERVER_ADDR:-frpc.example.com:7000}"
-FRPC_TOKEN="${FRPC_TOKEN:-your-frpc-token}"
-FRPC_CUSTOM_DOMAIN="${FRPC_CUSTOM_DOMAIN:-website.your-domain.com}"
-
-echo "=== Deploying Website to Server ==="
-echo "Registry: $HARBOR_REGISTRY"
-echo "Image: $PROJECT/$IMAGE_NAME:$TAG"
-echo "Server: $SERVER_IP"
-
-# SSH to server and deploy
-echo "Connecting to server: $SERVER_IP..."
-ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 "root@$SERVER_IP" << 'SSH_EOF'
-#!/bin/bash
-set -e
-
-# Configuration (passed from script)
-HARBOR_REGISTRY="\${HARBOR_REGISTRY}"
-PROJECT="\${PROJECT}"
-IMAGE_NAME="\${IMAGE_NAME}"
-TAG="\${TAG}"
-NGINX_SERVER_NAME="\${NGINX_SERVER_NAME}"
-FRPC_SERVER_ADDR="\${FRPC_SERVER_ADDR}"
-FRPC_TOKEN="\${FRPC_TOKEN}"
-FRPC_CUSTOM_DOMAIN="\${FRPC_CUSTOM_DOMAIN}"
-
-echo "=== Server-side Deployment ==="
-
-# Create directories
-mkdir -p /opt/website
-mkdir -p /opt/frpc
-
-# Pull Docker image
-echo "Pulling Docker image..."
-docker login "\$HARBOR_REGISTRY" -u "\${HARBOR_USER:-admin}" -p "\${HARBOR_PASSWORD}"
-docker pull "\$HARBOR_REGISTRY/\$PROJECT/\$IMAGE_NAME:\$TAG"
-
-# Stop and remove existing container
-echo "Stopping existing container..."
-docker stop website 2>/dev/null || true
-docker rm website 2>/dev/null || true
-
-# Download frpc if not exists
-if [ ! -f /opt/frpc/frpc ]; then
-    echo "Downloading frpc..."
-    curl -L -o /opt/frpc/frpc https://github.com/fatedier/frp/releases/latest/download/frpc_linux_amd64
-    chmod +x /opt/frpc/frpc
-fi
-
-# Create frpc config
-cat > /opt/frpc/frpc.toml << FRPC_EOF
-serverAddr = "$FRPC_SERVER_ADDR"
-serverPort = 7000
-auth.token = "$FRPC_TOKEN"
-
-[[proxies]]
-name = "website-http"
-type = "http"
-localIP = "127.0.0.1"
-localPort = 3000
-customDomains = ["$FRPC_CUSTOM_DOMAIN"]
-plugin = "proxy_pool"
-plugin_mode = "random"
-FRPC_EOF
-
-# Create Caddy config
-cat > /etc/caddy/Caddyfile << CADDY_EOF
-$NGINX_SERVER_NAME {
-    reverse_proxy http://127.0.0.1:3000
-}
-
-:80 {
-    redir https://{host}{uri} 301
-}
-CADDY_EOF
-
-# Run frpc in background
-echo "Starting frpc..."
-pkill frpc 2>/dev/null || true
-cd /opt/frpc
-nohup ./frpc -c ./frpc.toml > /var/log/frpc.log 2>&1 &
-echo "frpc started"
-
-# Start new container
-echo "Starting website container..."
-docker run -d \
-    --name website \
-    --restart=always \
-    -p 3000:3000 \
-    -e NODE_ENV=production \
-    "\$HARBOR_REGISTRY/\$PROJECT/\$IMAGE_NAME:\$TAG"
-
-echo "=== Deployment Complete ==="
-echo "Website should be available at: https://$FRPC_CUSTOM_DOMAIN"
-SSH_EOF
-
-echo "=== Deployment finished ==="
-DEPLOY_EOF
-
-chmod +x server-deploy.sh
+echo -e "${YELLOW}[4/4] Verifying...${NC}"
+docker pull "$FULL_IMAGE" > /dev/null 2>&1
+echo -e "${GREEN}  ✓ Image verify OK${NC}"
 
 echo ""
-echo "=== Build and Push Complete ==="
-echo "Image pushed to: $FULL_IMAGE"
+echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}  Done!${NC}"
+echo -e "${GREEN}========================================${NC}"
 echo ""
-echo "To deploy to server, run:"
-echo "  ./server-deploy.sh"
+echo -e "Images pushed:"
+echo -e "  ${GREEN}${FULL_IMAGE}${NC}"
+echo -e "  ${GREEN}${FULL_IMAGE_TS}${NC}"
 echo ""
-echo "Or copy deployment-manifest.yaml to your Kubernetes cluster"
+echo -e "To deploy locally, run:"
+echo -e "  ${YELLOW}./scripts/deploy-local.sh${NC}"
