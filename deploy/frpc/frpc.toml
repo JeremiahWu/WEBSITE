@@ -1,32 +1,16 @@
-# FRPC Configuration for reverse proxy through cloud server
-# Replace values with your actual FRPC server configuration
+# FRPC 配置 —— 运行在私有服务器上
+# 作用：把私有服务器上的 CORE 后端 API 通过云服务器 frps 透出到公网
+# 部署位置：私有服务器（与 CORE 同机），网站本身跑在云服务器上，不走 FRP
 
 serverAddr = "cloud-server-ip-or-domain"  # 替换为云服务器地址
-serverPort = 7000                          # FRPC服务器端口
-auth.token = "your-frpc-token"             # FRPC认证token
+serverPort = 7000                          # frps 端口
+auth.method = "token"
+auth.token = "fill-with-frps-token"        # 与云服务器 .env 中 FRPS_AUTH_TOKEN 一致
 
-# HTTP reverse proxy for website
+# 后端 API 反向代理（api.laowu.cafe -> CORE）
 [[proxies]]
-name = "website-http"
+name = "api-http"
 type = "http"
 localIP = "127.0.0.1"
-localPort = 3000                          # Next.js默认端口
-customDomains = ["your-domain.com"]       # 替换为你的域名
-# plugin = "proxy_pool"                   # 可选：代理池模式
-# plugin_mode = "random"
-
-# HTTPS reverse proxy (if needed)
-# [[proxies]]
-# name = "website-https"
-# type = "https"
-# localIP = "127.0.0.1"
-# localPort = 3000
-# customDomains = ["your-domain.com"]
-
-# TCP proxy for SSH access (optional)
-# [[proxies]]
-# name = "ssh"
-# type = "tcp"
-# localIP = "127.0.0.1"
-# localPort = 22
-# remotePort = 6000
+localPort = 8080                           # CORE 后端端口
+customDomains = ["api.laowu.cafe"]

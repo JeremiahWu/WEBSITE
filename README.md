@@ -2,26 +2,39 @@
 
 软件基础服务平台，提供网站应用服务。
 
+## 架构（高可用）
+
+```
+用户浏览器
+  ├─ https://laowu.cafe / www  → 云服务器 Caddy → website 容器 (3000)
+  │                                   （官网直接跑在云服务器上，不经过 FRP）
+  └─ https://api.laowu.cafe    → 云服务器 Caddy → frps vhost → frp 隧道
+                                        → 私有服务器 CORE 后端 (8080)
+```
+
+- **官网（本项目）**：由云服务器上的 `CLOUD` 仓库统一编排，保证高可用。
+- **后端（CORE 项目）**：跑在私有服务器上，通过 FRP 隧道透出。
+- 私有服务器上不需要 Caddy 和 website 容器，只跑 CORE + frpc。
+
 ## 项目结构
 
 ```
 LABSOFT/
 ├── src/              # Next.js 源代码
 │   ├── app/          #   Next.js App Router 页面
+│   │   └── api/health/  # 健康检查路由（容器 HEALTHCHECK 用）
 │   ├── components/   #   React 组件
 │   └── app/globals.css  #   全局样式
 ├── public/           # 静态资源
 │   ├── images/       #   图片资源
 │   └── videos/       #   视频资源
 ├── deploy/           # 部署配置
-│   ├── caddy/        #   Caddy反向代理配置
-│   ├── frpc/         #   FRPC内网穿透配置
+│   ├── frpc/         #   私有服务器 FRPC 配置（透出 CORE 后端 API）
 │   └── README.md     #   部署文档
 ├── scripts/          # 部署脚本
 │   ├── build-and-push.sh    # 构建并推送到Harbor
-│   ├── deploy.sh           # 部署到服务器
-│   └── jenkins-deploy.sh   # Jenkins部署脚本
-├── next.config.mjs   # Next.js 配置
+│   └── deploy.sh           # 部署到服务器
+├── next.config.mjs   # Next.js 配置（standalone 输出）
 ├── postcss.config.mjs
 ├── tailwind.config.ts
 ├── tsconfig.json
@@ -39,8 +52,6 @@ LABSOFT/
 | Tailwind CSS | 3.4 |
 | TypeScript | 5.4 |
 | Docker | latest |
-| Caddy | 2 |
-| FRPC | latest |
 
 ## 前置条件
 
@@ -48,7 +59,7 @@ LABSOFT/
 - Docker 20+
 - Docker Compose 2+
 
-## 快速开始
+## 快速开始（本地开发）
 
 ```bash
 # 1. 安装依赖
@@ -66,15 +77,13 @@ npm run start
 
 ## Docker部署
 
-### 构建镜像
+官网容器由云服务器上的 **CLOUD** 仓库统一编排（compose 中的 `website` 服务，build context 为 `../WEBSITE`），Caddy 反代 `laowu.cafe`/`www.laowu.cafe` 到 `website:3000`，容器端口不对公网暴露。
+
+### 本地构建/运行（调试用）
 
 ```bash
 docker build -t website:latest .
-```
 
-### 运行容器
-
-```bash
 docker run -d \
   --name website \
   -p 3000:3000 \
@@ -82,9 +91,17 @@ docker run -d \
   website:latest
 ```
 
+### 生产部署（云服务器）
+
+```bash
+# 云服务器上，CLOUD 与 WEBSITE 仓库同级目录（如 /opt/CLOUD、/opt/WEBSITE）
+cd /opt/WEBSITE && git pull
+cd /opt/CLOUD && docker compose up -d --build website
+```
+
 ## CI/CD部署
 
-### 方式一：使用Jenkins (推荐)
+### 方式一：使用Jenkins（后续接入 Harbor 后）
 
 #### 1. 配置Jenkins凭据
 
@@ -100,7 +117,7 @@ docker run -d \
   - ID: `ssh-key`
   - 类型: SSH username with private key
   - Username: root
-  - Private key: 服务器SSH私钥
+  - Private key: 云服务器SSH私钥
 
 #### 2. 修改Jenkinsfile
 
@@ -112,26 +129,26 @@ environment {
     PROJECT = 'labsoft'
     IMAGE_NAME = 'website'
     HARBOR_USER = 'admin'
+    CLOUD_DIR = '/opt/CLOUD'           // 云服务器上 CLOUD 仓库目录
 }
 
 parameters {
     string(
+        name: 'TAG',
+        defaultValue: 'latest',
+        description: 'Docker image tag'
+    )
+    string(
         name: 'SERVER_IP',
-        defaultValue: '192.168.124.100',  // 替换为你的服务器IP
-        description: 'Target server IP address'
-    )
-    string(
-        name: 'DOMAIN',
-        defaultValue: 'example.com',       // 替换为你的域名
-        description: 'Website domain name'
-    )
-    string(
-        name: 'FRPC_DOMAIN',
-        defaultValue: 'website.example.com', // 替换为你的FRPC域名
-        description: 'FRPC custom domain'
+        defaultValue: '<云服务器公网IP>',  // 官网部署目标为云服务器
+        description: 'Cloud server IP address'
     )
 }
 ```
+
+> 新架构下官网直接跑在云服务器上：pipeline 推送镜像到 Harbor 后，
+> SSH 到云服务器 pull 并 `docker compose up -d website` 滚动更新。
+> 私有服务器的 CORE 后端由 frpc 隧道透出，与官网部署无关。
 
 #### 3. 运行Pipeline
 
@@ -139,116 +156,32 @@ parameters {
 
 ### 方式二：手动部署
 
-#### 1. 构建并推送到Harbor
+#### 1. 云服务器上部署官网（与 CLOUD 栈统一编排）
 
 ```bash
-# 设置环境变量
-export HARBOR_REGISTRY=harbor.example.com
-export HARBOR_USER=admin
-export HARBOR_PASSWORD=your-password
-export TAG=v1.0.0
+# 两个仓库同级目录
+cd /opt
+git clone <CLOUD仓库地址>
+git clone <WEBSITE仓库地址>
 
-# 登录Harbor
-echo "$HARBOR_PASSWORD" | docker login "$HARBOR_REGISTRY" -u "$HARBOR_USER" --password-stdin
+# 准备 CLOUD 环境变量（frps token / Dashboard 密码）
+cd /opt/CLOUD && cp .env.example .env && vi .env
 
-# 构建镜像
-docker build -t "$HARBOR_REGISTRY/labsoft/website:$TAG" .
-
-# 推送到Harbor
-docker push "$HARBOR_REGISTRY/labsoft/website:$TAG"
+# 构建并启动（cloud + website 两个镜像）
+bash scripts/build.sh
+bash scripts/deploy.sh
 ```
 
-#### 2. 配置服务器
-
-在Ubuntu服务器上执行以下命令：
+#### 2. 私有服务器上部署 CORE 后端 + frpc
 
 ```bash
-# 安装Docker和Docker Compose
-curl -fsSL https://get.docker.com -o install-docker.sh
-sudo sh install-docker.sh
-sudo usermod -aG docker $USER
-
-# 下载FRPC
+# 配置 frpc（模板见 deploy/frpc/frpc.toml）：
+#   serverAddr = 云服务器公网IP
+#   auth.token = 云服务器 .env 中的 FRPS_AUTH_TOKEN
+#   localPort  = CORE 后端端口（默认 8080）
 sudo mkdir -p /opt/frpc
-sudo curl -L -o /opt/frpc/frpc https://github.com/fatedier/frp/releases/latest/download/frpc_linux_amd64
-sudo chmod +x /opt/frpc/frpc
-
-# 配置FRPC
-sudo cat > /opt/frpc/frpc.toml << 'EOF'
-serverAddr = "cloud-server-ip"    # 替换为云服务器FRPC地址
-serverPort = 7000
-auth.token = "your-frpc-token"    # 替换为FRPC token
-
-[[proxies]]
-name = "website-http"
-type = "http"
-localIP = "127.0.0.1"
-localPort = 3000
-customDomains = ["your-domain.com"]  # 替换为你的域名
-EOF
-
-# 配置Caddy
-sudo cat > /etc/caddy/Caddyfile << 'EOF'
-your-domain.com {                  # 替换为你的域名
-    reverse_proxy http://127.0.0.1:3000
-}
-
-:80 {
-    redir https://{host}{uri} 301
-}
-EOF
-
-# 创建Docker Compose文件
-sudo mkdir -p /opt/website
-sudo cat > /opt/website/docker-compose.yml << 'EOF'
-version: '3.8'
-
-services:
-  website:
-    image: harbor.example.com/labsoft/website:latest  # 替换为你的镜像地址
-    container_name: website
-    restart: always
-    environment:
-      - NODE_ENV=production
-    ports:
-      - "3000:3000"
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  frpc:
-    image: snowdreamtech/frpc:latest
-    container_name: frpc
-    restart: always
-    network_mode: host
-    volumes:
-      - /opt/frpc/frpc.toml:/frpc/frpc.toml:ro
-EOF
-
-# 启动服务
-cd /opt/website
-sudo docker-compose up -d
-```
-
-#### 3. 配置云服务器反向代理
-
-在云服务器上安装Caddy，配置反向代理到内网服务器：
-
-```bash
-# 安装Caddy
-sudo apt install -y caddy
-
-# 配置反向代理
-sudo cat > /etc/caddy/Caddyfile << 'EOF'
-your-domain.com {                  # 替换为你的域名
-    reverse_proxy http://192.168.124.100:80  # 替换为内网服务器IP
-}
-EOF
-
-# 重启Caddy
-sudo systemctl restart caddy
+sudo cp deploy/frpc/frpc.toml /opt/frpc/frpc.toml
+# 下载 frpc 并以 systemd 服务或容器方式运行
 ```
 
 ## 网站功能
@@ -278,62 +211,53 @@ npm run start    # 启动生产服务器
 
 ## 部署 troubleshooting
 
-### 查看容器日志
+### 查看容器日志（云服务器）
 ```bash
-docker logs website
-docker logs frpc
+docker compose -f /opt/CLOUD/docker-compose.yml logs -f website   # 官网
+docker compose -f /opt/CLOUD/docker-compose.yml logs -f caddy     # 反代
+docker compose -f /opt/CLOUD/docker-compose.yml logs -f cloud     # frps/邮件
 ```
 
 ### 重启服务
 ```bash
-docker-compose restart
-```
-
-### 清理部署
-```bash
-docker-compose down -v
+docker compose -f /opt/CLOUD/docker-compose.yml restart
 ```
 
 ### 常见问题
 
-**Q: FRPC无法连接**
-- 检查云服务器FRPC服务是否运行
-- 验证token是否正确
-- 确认防火墙允许7000端口
+**Q: FRPC无法连接（后端 API 不通）**
+- 检查云服务器 frps 是否运行：`docker compose logs cloud | grep frps`
+- 验证 token 与云服务器 `.env` 中 FRPS_AUTH_TOKEN 一致
+- 确认防火墙/安全组允许 7000 端口
+- 确认私有服务器 CORE 后端在 8080 端口正常监听
 
 **Q: Caddy无法访问网站**
-- 检查Next.js容器是否正常运行
-- 验证端口3000是否可访问
-- 查看Caddy日志定位问题
+- 检查 website 容器是否正常运行：`docker compose ps`
+- 验证健康检查状态（容器内 `wget -qO- http://localhost:3000/api/health`）
+- 查看 Caddy 日志定位问题
 
 **Q: 域名无法解析**
-- 确认DNS解析已配置
-- 检查云服务器反向代理配置
-- 验证FRPC自定义域名设置
+- 确认 DNS 解析已配置（laowu.cafe / www / api / mail 四条 A 记录）
+- 检查云服务器 Caddy 配置（CLOUD 仓库 `config/caddy/Caddyfile`）
+- 验证 api.laowu.cafe 的 FRP 自定义域名与 frpc 配置一致
 
 ---
 
 ## 云服务器反向代理 (Caddy)
 
-在云服务器上安装 Caddy 并配置 `/etc/caddy/Caddyfile`：
+云服务器上由 CLOUD 仓库的 Caddy 统一反代（证书由 certbot 管理）：
 
 ```caddy
+laowu.cafe, www.laowu.cafe {
+    reverse_proxy website:3000    # 官网容器（本机）
+}
+
 api.laowu.cafe {
-    reverse_proxy http://192.168.124.23:8080
-}
-
-www.laowu.cafe {
-    reverse_proxy http://192.168.124.23:3000
-}
-
-:80 {
-    redir https://{host}{uri} 301
+    reverse_proxy localhost:8080  # frps vhost -> frp 隧道 -> 私有服务器 CORE
 }
 ```
 
-Caddy 会自动为两个域名申请 Let's Encrypt HTTPS 证书。
-
-完整 Caddy 配置文件参见项目根目录 `CORE/deploy/caddy/Caddyfile`。
+完整 Caddy 配置参见 CLOUD 仓库 `config/caddy/Caddyfile`。
 
 ## 相关项目
 
@@ -341,6 +265,7 @@ Caddy 会自动为两个域名申请 Let's Encrypt HTTPS 证书。
 |------|------|------|
 | CORE | 后端API (Spring Boot) | `../CORE` |
 | LabApps | 跨平台APP (KMP) | `../LabApps` |
+| CLOUD | 云服务器服务栈 | `../CLOUD` |
 | WEBSITE | 官网 (Next.js) | 当前项目 |
 
 ## 内网服务器中间件
