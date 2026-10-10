@@ -1,7 +1,6 @@
 // Jenkins Pipeline for Next.js Website CI/CD
-// 新架构：官网跑在云服务器上（由 CLOUD 仓库的 compose 编排 website 服务，保证高可用）。
+// 官网部署在云服务器上（由 CLOUD 仓库的 compose 编排 website 服务，保证高可用）。
 // 本 pipeline：构建镜像 -> 推送 Harbor -> SSH 到云服务器 pull 并滚动更新 website 容器。
-// 私有服务器的 CORE 后端由 frpc 隧道透出，与官网部署无关（见 deploy/frpc/frpc.toml）。
 
 pipeline {
     agent any

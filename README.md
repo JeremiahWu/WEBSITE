@@ -5,16 +5,11 @@
 ## 架构（高可用）
 
 ```
-用户浏览器
-  ├─ https://laowu.cafe / www  → 云服务器 Caddy → website 容器 (3000)
-  │                                   （官网直接跑在云服务器上，不经过 FRP）
-  └─ https://api.laowu.cafe    → 云服务器 Caddy → frps vhost → frp 隧道
-                                        → 私有服务器 CORE 后端 (8080)
+用户浏览器 → 云服务器 Caddy (HTTPS) → website 容器 (3000)
 ```
 
-- **官网（本项目）**：由云服务器上的 `CLOUD` 仓库统一编排，保证高可用。
-- **后端（CORE 项目）**：跑在私有服务器上，通过 FRP 隧道透出。
-- 私有服务器上不需要 Caddy 和 website 容器，只跑 CORE + frpc。
+- **官网（本项目）**：部署在云服务器上，由 `CLOUD` 仓库的 compose 统一编排，保证高可用。
+- 后端 API（CORE 项目）独立部署，不在本仓库范围内。
 
 ## 项目结构
 
@@ -28,9 +23,6 @@ LABSOFT/
 ├── public/           # 静态资源
 │   ├── images/       #   图片资源
 │   └── videos/       #   视频资源
-├── deploy/           # 部署配置
-│   ├── frpc/         #   私有服务器 FRPC 配置（透出 CORE 后端 API）
-│   └── README.md     #   部署文档
 ├── scripts/          # 部署脚本
 │   ├── build-and-push.sh    # 构建并推送到Harbor
 │   └── deploy.sh           # 部署到服务器
@@ -146,9 +138,8 @@ parameters {
 }
 ```
 
-> 新架构下官网直接跑在云服务器上：pipeline 推送镜像到 Harbor 后，
+> 官网直接跑在云服务器上：pipeline 推送镜像到 Harbor 后，
 > SSH 到云服务器 pull 并 `docker compose up -d website` 滚动更新。
-> 私有服务器的 CORE 后端由 frpc 隧道透出，与官网部署无关。
 
 #### 3. 运行Pipeline
 
@@ -164,24 +155,12 @@ cd /opt
 git clone <CLOUD仓库地址>
 git clone <WEBSITE仓库地址>
 
-# 准备 CLOUD 环境变量（frps token / Dashboard 密码）
+# 准备 CLOUD 环境变量（见 CLOUD 仓库 README）
 cd /opt/CLOUD && cp .env.example .env && vi .env
 
 # 构建并启动（cloud + website 两个镜像）
 bash scripts/build.sh
 bash scripts/deploy.sh
-```
-
-#### 2. 私有服务器上部署 CORE 后端 + frpc
-
-```bash
-# 配置 frpc（模板见 deploy/frpc/frpc.toml）：
-#   serverAddr = 云服务器公网IP
-#   auth.token = 云服务器 .env 中的 FRPS_AUTH_TOKEN
-#   localPort  = CORE 后端端口（默认 8080）
-sudo mkdir -p /opt/frpc
-sudo cp deploy/frpc/frpc.toml /opt/frpc/frpc.toml
-# 下载 frpc 并以 systemd 服务或容器方式运行
 ```
 
 ## 网站功能
@@ -215,7 +194,7 @@ npm run start    # 启动生产服务器
 ```bash
 docker compose -f /opt/CLOUD/docker-compose.yml logs -f website   # 官网
 docker compose -f /opt/CLOUD/docker-compose.yml logs -f caddy     # 反代
-docker compose -f /opt/CLOUD/docker-compose.yml logs -f cloud     # frps/邮件
+docker compose -f /opt/CLOUD/docker-compose.yml logs -f cloud     # 邮件服务
 ```
 
 ### 重启服务
@@ -225,21 +204,14 @@ docker compose -f /opt/CLOUD/docker-compose.yml restart
 
 ### 常见问题
 
-**Q: FRPC无法连接（后端 API 不通）**
-- 检查云服务器 frps 是否运行：`docker compose logs cloud | grep frps`
-- 验证 token 与云服务器 `.env` 中 FRPS_AUTH_TOKEN 一致
-- 确认防火墙/安全组允许 7000 端口
-- 确认私有服务器 CORE 后端在 8080 端口正常监听
-
 **Q: Caddy无法访问网站**
 - 检查 website 容器是否正常运行：`docker compose ps`
 - 验证健康检查状态（容器内 `wget -qO- http://localhost:3000/api/health`）
 - 查看 Caddy 日志定位问题
 
 **Q: 域名无法解析**
-- 确认 DNS 解析已配置（laowu.cafe / www / api / mail 四条 A 记录）
+- 确认 DNS 解析已配置（laowu.cafe / www 两条 A 记录指向云服务器）
 - 检查云服务器 Caddy 配置（CLOUD 仓库 `config/caddy/Caddyfile`）
-- 验证 api.laowu.cafe 的 FRP 自定义域名与 frpc 配置一致
 
 ---
 
@@ -250,10 +222,6 @@ docker compose -f /opt/CLOUD/docker-compose.yml restart
 ```caddy
 laowu.cafe, www.laowu.cafe {
     reverse_proxy website:3000    # 官网容器（本机）
-}
-
-api.laowu.cafe {
-    reverse_proxy localhost:8080  # frps vhost -> frp 隧道 -> 私有服务器 CORE
 }
 ```
 
