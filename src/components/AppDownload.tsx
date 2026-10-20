@@ -1,78 +1,15 @@
-const phases = [
-  {
-    title: "第一阶段（基础建设）",
-    items: [
-      "通过微信公众号推送，扩大老吴咖啡知名度",
-      "连通库尔勒、厦门、深圳等地服务器",
-      "提供网站搭载、SSL、数据监控等基础服务",
-    ],
-  },
-  {
-    title: "第二阶段（移动应用）",
-    items: [
-      "发布 iOS / Android 移动应用",
-      "集成在线服务预约与支付",
-      "数据监控仪表盘移动端适配",
-    ],
-  },
-  {
-    title: "第三阶段（生态完善）",
-    items: [
-      "开放 API 接口，支持第三方集成",
-      "社区功能与用户互动体系",
-      "持续迭代，打造完整服务生态",
-    ],
-  },
-];
-
+import { applications } from "@/config/downloads";
 export default function AppDownload() {
   return (
-    <section id="download" className="py-24 bg-light">
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-dark mb-4">
-            老吴咖啡移动应用
-          </h2>
-          <div className="divider" />
-          <p className="text-muted mt-6 max-w-2xl mx-auto">
-            专注于建立一套完整的网络系统，将各个节点全部打通，形成一条初具规模的产品线。
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8">
-          {phases.map((p, i) => (
-            <div
-              key={i}
-              className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-lg transition-shadow"
-            >
-              <div className="flex items-center gap-3 mb-6">
-                <span className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg">
-                  {i + 1}
-                </span>
-                <h3 className="text-lg font-semibold text-dark">{p.title}</h3>
-              </div>
-              <ul className="space-y-3">
-                {p.items.map((item, j) => (
-                  <li key={j} className="flex gap-2 text-muted">
-                    <span className="text-primary mt-1 shrink-0">&#10003;</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-
-        <div className="text-center mt-12">
-          <div className="inline-flex gap-4">
-            <span className="px-6 py-3 bg-primary/10 text-primary rounded-full font-medium">
-              iOS - 即将推出
-            </span>
-            <span className="px-6 py-3 bg-primary/10 text-primary rounded-full font-medium">
-              Android - 即将推出
-            </span>
-          </div>
-        </div>
+    <section id="download" className="home-section home-download">
+      <div className="home-container">
+        <div className="home-section-heading"><div><p className="home-eyebrow">MADE FOR YOUR EVERYDAY</p><h2>应用下载。<br/><span>从桌面，到掌心。</span></h2></div><p>在电脑上使用 LabStudio，<br/>在手机上使用 LabApps。</p></div>
+        <div className="home-app-grid">{applications.map((app, index) => <article key={app.name} className="home-app-card">
+          <p className="home-eyebrow">{app.category}</p><h3>{app.name}</h3><p className="home-app-description">{app.description}</p>
+          <div className={`home-device-scene ${index === 0 ? "scene-desktop" : "scene-mobile"}`} aria-hidden="true"><div className="home-device"><div className="device-screen"><span>{index === 0 ? "LS" : "LA"}</span><i/><i/><i/></div></div><div className="device-shadow"/></div>
+          <ul className="home-platforms">{app.platforms.map(platform => <li key={platform.name}><div><h4>{platform.name}</h4><p>{platform.format}</p></div>{platform.url ? <a href={platform.url} className="home-download-button" aria-label={`获取 ${app.name} ${platform.name} 版`}>获取应用 <span aria-hidden="true">↗</span></a> : <button type="button" disabled aria-label={`${app.name} ${platform.name} 版即将提供`}>即将提供</button>}</li>)}</ul>
+        </article>)}</div>
+        <p className="home-download-note">应用正在准备中，下载开放后可从此处获取。设备画面为概念示意。</p>
       </div>
     </section>
   );

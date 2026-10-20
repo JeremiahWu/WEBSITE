@@ -65,8 +65,7 @@ web_modules/
 # Yarn Integrity file
 .yarn-integrity
 
-# Package lock
-package-lock.json
+# Keep package-lock.json tracked for reproducible npm ci / Docker builds.
 
 # Next.js env
 next-env.d.ts
@@ -82,6 +81,7 @@ next-env.d.ts
 
 # Next.js build output
 .next
+.next-dev
 out
 
 # Nuxt.js build / generate output
@@ -151,7 +151,7 @@ src/uploads/*
 # ─── Docker ──────────────────────────────────────────
 # Docker build artifacts
 .docker/
-*.dockerignore
+# Keep .dockerignore tracked as part of the build configuration.
 
 # ─── Deployment ──────────────────────────────────────
 # Generated deployment configs (contain secrets)
@@ -162,3 +162,30 @@ server-deploy.sh
 
 # Local deployment state
 /opt/cafelab-website/
+
+# OS metadata
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# Local editor state and temporary files
+.idea/
+*.swp
+*.swo
+*~
+
+# Local credentials and SSH deployment keys
+.aws/
+.ssh/
+*.pem
+*.key
+*.p12
+*.pfx
+kubeconfig
+server-deploy-key
+
+# Independent local Sites checkout (not part of this application's source)
+/sites/laowu-cafe/
+
+# public/downloads stays tracked: packages are bundled into the website image.

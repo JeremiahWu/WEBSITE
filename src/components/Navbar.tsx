@@ -1,64 +1,21 @@
 "use client";
-
 import { useState } from "react";
-
 const links = [
-  { href: "#hero", label: "首页" },
-  { href: "#services", label: "服务" },
-  { href: "#download", label: "移动应用" },
+  { href: "#services", label: "研究方向" },
+  { href: "#download", label: "应用下载" },
   { href: "#values", label: "价值观" },
   { href: "#goals", label: "目标" },
-  { href: "#about", label: "关于" },
+  { href: "#about", label: "关于老吴" },
 ];
-
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-primary/95 backdrop-blur-sm shadow-md">
-      <div className="max-w-6xl mx-auto px-4 flex items-center justify-between h-16">
-        <a href="#hero" className="flex items-center gap-2">
-          <img src="/images/logo.png" alt="LABSOFT" className="h-10" />
-        </a>
-
-        {/* Desktop links */}
-        <div className="hidden md:flex gap-6">
-          {links.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              className="text-white/90 hover:text-white text-sm font-medium transition"
-            >
-              {l.label}
-            </a>
-          ))}
-        </div>
-
-        {/* Mobile toggle */}
-        <button
-          className="md:hidden text-white text-2xl"
-          onClick={() => setOpen(!open)}
-          aria-label="Toggle menu"
-        >
-          {open ? "\u2715" : "\u2630"}
-        </button>
+    <header className="home-nav">
+      <div className="home-nav-inner"><a href="#hero" className="home-brand" onClick={() => setOpen(false)}>LABSOFT<span>老吴咖啡实验室</span></a>
+        <nav className="home-desktop-nav" aria-label="主导航">{links.map(l => <a key={l.href} href={l.href}>{l.label}</a>)}</nav>
+        <button type="button" className="home-menu-toggle" aria-label={open ? "关闭导航" : "打开导航"} aria-expanded={open} aria-controls="home-mobile-nav" onClick={() => setOpen(!open)}>{open ? "关闭 −" : "菜单 +"}</button>
       </div>
-
-      {/* Mobile menu */}
-      {open && (
-        <div className="md:hidden bg-primary px-4 pb-4 space-y-2">
-          {links.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              className="block text-white/90 hover:text-white py-1"
-              onClick={() => setOpen(false)}
-            >
-              {l.label}
-            </a>
-          ))}
-        </div>
-      )}
-    </nav>
+      {open && <nav id="home-mobile-nav" className="home-mobile-nav" aria-label="移动端导航">{links.map(l => <a key={l.href} href={l.href} onClick={() => setOpen(false)}>{l.label}<span aria-hidden="true">↗</span></a>)}</nav>}
+    </header>
   );
 }

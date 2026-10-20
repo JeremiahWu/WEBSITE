@@ -1,3 +1,4 @@
+import "./home.css";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import Services from "@/components/Services";
@@ -9,15 +10,17 @@ import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
-    <main>
+    <div className="home-page">
       <Navbar />
+      <main>
       <Hero />
       <Services />
       <AppDownload />
       <Values />
       <Goals />
       <About />
+      </main>
       <Footer />
-    </main>
+    </div>
   );
 }

@@ -167,7 +167,8 @@ bash scripts/deploy.sh
 
 - 首页展示
 - 服务介绍
-- 移动应用预告
+- LabStudio 桌面端下载（Windows / macOS）
+- LabApps 移动端下载（Android / iOS）
 - 价值观与目标
 - 关于作者
 - 联系方式
@@ -251,3 +252,26 @@ laowu.cafe, www.laowu.cafe {
 ---
 
 © 2013-2026 老吴咖啡实验室 LABSOFT
+
+## 应用安装包与下载入口
+
+网站的“应用下载”区展示 LabStudio（Windows / macOS）和 LabApps（Android / iOS）。
+下载配置统一位于 `src/config/downloads.ts`；当前所有 `url` 均为 `null`，页面显示禁用的“即将提供”按钮，不会产生无效下载请求。
+
+| 应用 | 平台 | 预留文件位置 | 发布后的 URL |
+|------|------|--------------|-------------|
+| LabStudio | Windows | `public/downloads/labstudio/windows/LabStudio-Setup.exe` | `/downloads/labstudio/windows/LabStudio-Setup.exe` |
+| LabStudio | macOS | `public/downloads/labstudio/macos/LabStudio.dmg` | `/downloads/labstudio/macos/LabStudio.dmg` |
+| LabApps | Android | `public/downloads/labapps/android/LabApps.apk` | `/downloads/labapps/android/LabApps.apk` |
+| LabApps | iOS | `public/downloads/labapps/ios/` | 根据实际分发方式填写 |
+
+发布步骤：
+
+1. 将安装包复制到上表对应位置；文件名和扩展名也可以自定义。
+2. 编辑 `src/config/downloads.ts`，将对应平台的 `url: null as string | null` 改为实际 URL，例如 `url: "/downloads/labstudio/windows/LabStudio-Setup.exe"`。`path` 仅记录预留位置，不会自动启用按钮。
+3. 重新执行 `npm run build` 并部署。Docker 部署时需要重新构建镜像，现有 Dockerfile 会将 `public` 中的安装包复制到镜像。
+4. 打开下载入口，确认文件可下载后完成发布。
+
+iOS 预留目录用于存放后续分发所需文件；普通网页直接下载 IPA 并不等于可以安装。iOS 的 `url` 应使用实际可用的 App Store、TestFlight 或已配置的签名分发入口。
+
+当前生产 Dockerfile 构建的是仓库根目录应用；`sites/laowu-cafe` 是另一份独立副本，本节所述修改和目录均以根目录为准。
