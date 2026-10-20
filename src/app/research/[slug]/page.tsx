@@ -1,3 +1,5 @@
+import { contact } from "@/config/contact";
+import BrandLogo from "@/components/BrandLogo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -23,7 +25,7 @@ export default function ResearchPage({ params }: { params: { slug: string } }) {
     <div className={`research-page theme-${item.theme}`}>
       <header className="research-nav">
         <div className="research-nav-inner">
-          <Link href="/" className="research-brand">LABSOFT<span> / {item.english}</span></Link>
+          <Link href="/" className="research-brand" aria-label="老吴咖啡实验室首页"><BrandLogo /><span> / {item.english}</span></Link>
           <nav aria-label="研究方向导航">
             <Link href="/#services">返回首页</Link>
             <a href="#explore" className="research-nav-cta">深入了解 <span aria-hidden="true">↓</span></a>
@@ -61,7 +63,7 @@ export default function ResearchPage({ params }: { params: { slug: string } }) {
           <p className="research-eyebrow">KEEP EXPLORING</p>
           <h2>{item.closing.split("\n").map((line) => <span key={line}>{line}<br/></span>)}</h2>
           <p>这些方向正在持续探索中。欢迎交流想法，一起讨论技术与生活的更多可能。</p>
-          <a href="mailto:wuruihao629@laowu-cafe.com" className="research-contact">联系老吴 <span aria-hidden="true">↗</span></a>
+          <a href={`mailto:${contact.email}`} className="research-contact">联系老吴 <span aria-hidden="true">↗</span></a>
         </section>
         <section className="research-related research-container" aria-label="更多研究方向">
           <h2>继续探索</h2>
@@ -70,7 +72,7 @@ export default function ResearchPage({ params }: { params: { slug: string } }) {
           ))}</div>
         </section>
       </main>
-      <footer className="research-footer research-container"><Link href="/">老吴咖啡实验室 · LABSOFT</Link><span>技术与生活，持续探索。</span></footer>
+      <footer className="research-footer research-container"><Link href="/" aria-label="老吴咖啡实验室首页"><BrandLogo variant="footer" /></Link><span>技术与生活，持续探索。</span></footer>
     </div>
   );
 }

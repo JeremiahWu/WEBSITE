@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "老吴咖啡实验室 | LABSOFT",
   description: "老吴咖啡实验室 - 软件基础服务",
-  icons: { icon: "/favicon.png" },
+  icons: { icon: "/images/laowu-cafe-logo.png", apple: "/images/laowu-cafe-logo.png" },
 };
 
 export default function RootLayout({

@@ -3,9 +3,9 @@ import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import Services from "@/components/Services";
 import AppDownload from "@/components/AppDownload";
-import Values from "@/components/Values";
-import Goals from "@/components/Goals";
-import About from "@/components/About";
+import Blog from "@/components/Blog";
+import GitHub from "@/components/GitHub";
+import StoryLinks from "@/components/StoryLinks";
 import Footer from "@/components/Footer";
 
 export default function Home() {
@@ -16,9 +16,9 @@ export default function Home() {
       <Hero />
       <Services />
       <AppDownload />
-      <Values />
-      <Goals />
-      <About />
+      <GitHub />
+      <Blog />
+      <StoryLinks />
       </main>
       <Footer />
     </div>
