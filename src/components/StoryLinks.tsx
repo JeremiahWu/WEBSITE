@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { values } from "@/config/values";
 
 export default function StoryLinks() {
   return (
@@ -7,14 +8,13 @@ export default function StoryLinks() {
         <div className="home-container home-github-layout">
           <div>
             <p className="home-eyebrow">价值观 / WHAT WE BELIEVE</p>
-            <h2>有些热爱，<br/><span>无法用数字衡量。</span></h2>
-            <p className="home-github-copy">相信技术，也相信微小改变的力量。用所学所得，为这个世界带来一些力所能及的改变。</p>
+            <h2>老吴咖啡实验室<br/><span>价值观。</span></h2>
+            <p className="home-github-copy">前沿探索 · 人文关怀 · 求真务实 · 孤独情结</p>
             <Link href="/values" className="home-button">了解我的价值观 <span aria-hidden="true">↗</span></Link>
           </div>
           <Link href="/values" className="home-story-belief" aria-label="阅读价值观介绍">
-            <span className="home-belief-mark" aria-hidden="true">“</span>
-            <p>理想还在。<br/>热爱，就有方向。</p>
-            <span className="home-belief-caption">KEEP BELIEVING <span aria-hidden="true">↗</span></span>
+            <ol className="home-values-summary">{values.map(value => <li key={value.number}><span>{value.number}</span><span>{value.title}</span></li>)}</ol>
+            <span className="home-belief-caption">阅读完整价值观 <span aria-hidden="true">↗</span></span>
           </Link>
         </div>
       </section>

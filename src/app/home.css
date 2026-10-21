@@ -28,3 +28,14 @@
 
 .home-blog{background:#fff}.home-blog-card{display:flex;flex-direction:column;justify-content:center;min-height:320px;padding:35px 40px;border-radius:30px;background:radial-gradient(ellipse at top,#f8eedf,#faf7f2 80%);color:#655b4d}.home-blog-label{font-size:10px;letter-spacing:.14em;color:#8b7c66}.home-blog-card svg{width:70px;height:70px;margin:26px 0 20px;color:#a18760}.home-blog-title{font-size:28px;font-weight:600;letter-spacing:-.04em}.home-blog-address{display:flex;justify-content:space-between;gap:18px;font-size:12px;letter-spacing:0;color:#8b7c66;margin-top:24px}.home-blog+.home-story-section{background:#f5f5f7}.home-blog+.home-story-section+.home-story-about{background:#fff}
 @media(max-width:700px){.home-blog-card{min-height:280px;padding:30px}.home-blog-title{font-size:25px}}
+
+.values-page-heading{margin-bottom:65px}.values-principles{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:24px}.values-principles li{display:flex;gap:28px;padding:38px;background:#f5f5f7;border-radius:28px}.values-principle-number{font-size:18px;font-weight:500;letter-spacing:-.03em;color:var(--home-accent);padding-top:7px}.home-section .values-principles h2{font-size:30px;line-height:1.4;letter-spacing:-.035em}.values-principles p{margin-top:20px;color:var(--home-muted);font-size:17px;line-height:1.95;letter-spacing:0}.home-values-summary{list-style:none;padding:0;margin:0 0 28px;display:flex;flex-direction:column;gap:0}.home-values-summary li{display:flex;align-items:center;gap:24px;padding:16px 0;border-bottom:1px solid #dcdce8}.home-values-summary li:last-child{border-bottom:0}.home-values-summary li>span:first-child{font-size:13px;color:var(--home-accent)}.home-values-summary li>span:last-child{font-size:24px;font-weight:600;letter-spacing:-.03em}
+@media(max-width:700px){.values-page-heading{margin-bottom:38px}.values-principles{grid-template-columns:1fr;gap:18px}.values-principles li{padding:28px;gap:20px}.home-section .values-principles h2{font-size:26px}.values-principles p{font-size:16px;margin-top:14px}.values-principle-number{font-size:16px;padding-top:5px}.home-values-summary li>span:last-child{font-size:22px}}
+
+/* Soft motion behind the hero; foreground text and controls stay sharp. */
+.home-hero{position:relative;isolation:isolate}
+.home-hero-background{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.home-hero-background video{display:block;width:100%;height:100%;object-fit:cover;filter:blur(10px);transform:scale(1.08)}
+.home-hero-veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(248,249,255,.45) 60%,rgba(255,255,255,.82))}
+@media(max-width:700px){.home-hero-background video{filter:blur(7px)}}
+@media(prefers-reduced-motion:reduce){.home-hero-background video{display:none}}
