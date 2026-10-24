@@ -9,7 +9,7 @@ export default function Hero() {
         </video>
         <div className="home-hero-veil" />
       </div>
-      <p className="home-eyebrow">老吴咖啡实验室 / Laowu-Cafe Labs</p>
+      <p className="home-eyebrow">老吴咖啡实验室 / LAOWU-CAFE Labs</p>
       <h1>生活的美好<br/><span>就是美好的生活</span></h1>
       <p className="home-hero-copy">老吴咖啡实验室欢迎您！</p>
       <div className="home-actions"><a href="#services" className="home-button">探索我们做的事 <span aria-hidden="true">↓</span></a><a href="#download" className="home-text-link">获取应用 <span aria-hidden="true">↗</span></a></div>

@@ -1,4 +1,4 @@
-# 老吴咖啡实验室 | Laowu-Cafe Labs
+# 老吴咖啡实验室 | LAOWU-CAFE Labs
 
 ## 项目结构
 
@@ -106,6 +106,18 @@ Dockerfile 使用 Node.js 20 Alpine 多阶段构建，运行 Next.js standalone 
 
 ## 一键部署
 
+### Docker 单命令部署（无需克隆仓库）
+
+在已安装并启动 Docker 的服务器上执行，自动拉取最新镜像并后台运行：
+
+```bash
+docker run -d --pull always --name website --restart unless-stopped -p 3000:3000 -e NODE_ENV=production -e HOSTNAME=0.0.0.0 -e PORT=3000 -e TZ=Asia/Shanghai wuruihao629/website:latest
+```
+
+部署后访问 `http://服务器IP:3000`，本机访问 [http://localhost:3000](http://localhost:3000)。服务器防火墙需允许 3000 端口；私有镜像需先执行 `docker login -u wuruihao629`。容器名 `website` 和宿主机 3000 端口需未被占用。固定版本时将 `latest` 替换为日期标签，例如 `20261024-153000`。
+
+该命令用于独立容器首次部署，不自动加入 CLOUD 网络。已有 CLOUD 环境请使用下方 Compose 部署流程；已有独立容器的更新可使用下方独立容器脚本。
+
 部署脚本在执行它的机器上部署，不会自动 SSH 到其他服务器。请先将仓库或部署脚本放到目标服务器；私有镜像需先在目标服务器登录 Docker Hub。
 
 ### CLOUD Compose 模式（默认）
@@ -192,4 +204,4 @@ git diff --check
 
 相关项目包括 CLOUD 云服务器服务栈、LabStudio 桌面应用、LabApps 移动应用；后端 API 独立部署，不在本仓库范围内。
 
-© 2013–2026 老吴咖啡实验室 Laowu-Cafe Labs
+© 2013–2026 老吴咖啡实验室 LAOWU-CAFE Labs

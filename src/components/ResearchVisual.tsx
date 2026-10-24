@@ -36,7 +36,7 @@ export default function ResearchVisual({ theme }: { theme: "ai" | "robotics" | "
           <circle cx="263" cy="272" r="7" fill="#505b80"/><circle cx="537" cy="272" r="7" fill="#505b80"/>
         </g>}
       </svg>
-      <span className="visual-caption">LAOWU-CAFE LABS / CONCEPT EXPLORATION</span>
+      <span className="visual-caption">LAOWU-CAFE Labs / CONCEPT EXPLORATION</span>
     </div>
   );
 }
