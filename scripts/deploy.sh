@@ -1,89 +1,81 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-# ================================
-# Cafelab Website - Local Deploy
-# Deploy website container on this machine
-# ================================
-
-# Configuration
-REGISTRY="${REGISTRY:-localhost:5000}"
-IMAGE_NAME="${IMAGE_NAME:-cafelab-website}"
-TAG="${TAG:-latest}"
-CONTAINER_NAME="${CONTAINER_NAME:-cafelab-website}"
-HOST_PORT="${HOST_PORT:-3000}"
-
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-FULL_IMAGE="${REGISTRY}/${IMAGE_NAME}:${TAG}"
-
-echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}  Cafelab Website - Local Deploy${NC}"
-echo -e "${GREEN}========================================${NC}"
-echo ""
-echo -e "Image:        ${YELLOW}${FULL_IMAGE}${NC}"
-echo -e "Container:    ${YELLOW}${CONTAINER_NAME}${NC}"
-echo -e "Host Port:    ${YELLOW}${HOST_PORT}${NC}"
-echo ""
-
-# Ensure we're in the WEBSITE directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WEBSITE_DIR="$(dirname "$SCRIPT_DIR")"
-cd "$WEBSITE_DIR"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+IMAGE="${IMAGE:-wuruihao629/website}"
+TAG="${TAG:-latest}"
+DEPLOY_MODE="${DEPLOY_MODE:-compose}"
+CLOUD_DIR="${CLOUD_DIR:-$(dirname "$PROJECT_DIR")/CLOUD}"
+CONTAINER_NAME="${CONTAINER_NAME:-website}"
+HOST_PORT="${HOST_PORT:-3000}"
+FULL_IMAGE="${IMAGE}:${TAG}"
 
-# ─── Step 1: Pull latest image ──────────────────────────────────────────
-echo -e "${YELLOW}[1/4] Pulling latest image...${NC}"
-docker pull "$FULL_IMAGE"
-echo -e "${GREEN}  ✓ Image pulled${NC}"
-
-# ─── Step 2: Stop and remove existing container ─────────────────────────
-echo -e "${YELLOW}[2/4] Stopping existing container...${NC}"
-if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-    docker stop "$CONTAINER_NAME" 2>/dev/null || true
-    docker rm "$CONTAINER_NAME" 2>/dev/null || true
-    echo -e "${GREEN}  ✓ Old container removed${NC}"
-else
-    echo -e "${GREEN}  ✓ No existing container${NC}"
-fi
-
-# ─── Step 3: Start new container ────────────────────────────────────────
-echo -e "${YELLOW}[3/4] Starting website container...${NC}"
-docker run -d \
-    --name "$CONTAINER_NAME" \
-    --restart=always \
-    -p "${HOST_PORT}:3000" \
-    -e NODE_ENV=production \
-    -e PORT=3000 \
-    "$FULL_IMAGE"
-
-echo -e "${GREEN}  ✓ Container started${NC}"
-
-# ─── Step 4: Verify deployment ──────────────────────────────────────────
-echo -e "${YELLOW}[4/4] Verifying deployment...${NC}"
-sleep 3
-
-if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-    echo -e "${GREEN}  ✓ Container is running${NC}"
-    echo ""
-    echo -e "${GREEN}========================================${NC}"
-    echo -e "${GREEN}  Deploy Complete!${NC}"
-    echo -e "${GREEN}========================================${NC}"
-    echo ""
-    echo -e "Website:      ${GREEN}http://localhost:${HOST_PORT}${NC}"
-    echo -e "Container:    ${GREEN}${CONTAINER_NAME}${NC}"
-    echo ""
-    echo -e "Useful commands:"
-    echo -e "  View logs:    ${YELLOW}docker logs -f ${CONTAINER_NAME}${NC}"
-    echo -e "  Restart:      ${YELLOW}docker restart ${CONTAINER_NAME}${NC}"
-    echo -e "  Stop:         ${YELLOW}docker stop ${CONTAINER_NAME}${NC}"
-else
-    echo -e "${RED}  ✗ Container failed to start!${NC}"
-    echo ""
-    echo "Check logs:"
-    docker logs "$CONTAINER_NAME" 2>/dev/null || echo "  No logs available"
+if [[ "$TAG" != latest && ! "$TAG" =~ ^[0-9]{8}-[0-9]{6}$ ]]; then
+    echo "TAG 必须为 latest 或日期格式 YYYYMMDD-HHMMSS。" >&2
     exit 1
 fi
+
+command -v docker >/dev/null
+docker info >/dev/null
+
+case "$DEPLOY_MODE" in
+    compose)
+        docker compose version >/dev/null
+        if [[ ! -f "$CLOUD_DIR/docker-compose.yml" ]]; then
+            echo "未找到 $CLOUD_DIR/docker-compose.yml，请设置 CLOUD_DIR。" >&2
+            exit 1
+        fi
+        cd "$CLOUD_DIR"
+        export WEBSITE_IMAGE="$FULL_IMAGE"
+        docker compose pull website
+        docker compose up -d --no-deps --no-build website
+        CONTAINER_ID="$(docker compose ps -q website)"
+        ;;
+    standalone)
+        docker pull "$FULL_IMAGE"
+        if docker container inspect "$CONTAINER_NAME" >/dev/null 2>&1; then
+            docker stop "$CONTAINER_NAME"
+            docker rm "$CONTAINER_NAME"
+        fi
+        CONTAINER_ID="$(docker run -d \
+            --name "$CONTAINER_NAME" \
+            --restart unless-stopped \
+            -p "127.0.0.1:${HOST_PORT}:3000" \
+            -e NODE_ENV=production \
+            -e HOSTNAME=0.0.0.0 \
+            -e PORT=3000 \
+            -e TZ=Asia/Shanghai \
+            "$FULL_IMAGE")"
+        ;;
+    *)
+        echo "DEPLOY_MODE 必须为 compose 或 standalone。" >&2
+        exit 1
+        ;;
+esac
+
+if [[ -z "$CONTAINER_ID" ]]; then
+    echo "部署失败：未找到运行中的 website 容器。" >&2
+    exit 1
+fi
+
+echo "等待 ${FULL_IMAGE} 健康检查通过……"
+for ((attempt=1; attempt<=60; attempt++)); do
+    STATUS="$(docker inspect --format '{{.State.Status}}' "$CONTAINER_ID")"
+    HEALTH="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' "$CONTAINER_ID")"
+    if [[ "$STATUS" == running && "$HEALTH" == healthy ]]; then
+        echo "部署成功：${FULL_IMAGE}"
+        if [[ "$DEPLOY_MODE" == standalone ]]; then
+            echo "访问地址：http://localhost:${HOST_PORT}"
+        fi
+        exit 0
+    fi
+    if [[ "$STATUS" != running || "$HEALTH" == unhealthy || "$HEALTH" == missing ]]; then
+        break
+    fi
+    sleep 2
+done
+
+echo "部署失败：容器未通过健康检查。" >&2
+docker logs --tail 80 "$CONTAINER_ID" >&2
+exit 1

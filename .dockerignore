@@ -1,0 +1,16 @@
+.git
+.next
+.next-dev
+node_modules
+sites
+.env
+.env.*
+.aws
+.ssh
+.codex
+.agents
+*.pem
+*.key
+*.tsbuildinfo
+*.log
+.DS_Store
