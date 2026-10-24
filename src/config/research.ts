@@ -2,7 +2,7 @@ export const research = {
   ai: {
     name: "人工智能研究", english: "AI Research", number: "01", theme: "ai",
     headline: ["让智能，", "走进真实的问题。"],
-    intro: "从语言模型到场景应用，探索智能如何理解、协作，并成为创造力的一部分。",
+    intro: "以自有算力资源为基础，围绕大语言模型的训练、优化与应用展开研究。关注模型能力，也关注它在实际任务中的表现，让研究与真实需求保持连接。",
     statement: "从模型出发。\n向应用深入。",
     overview: "以自有算力资源为基础，围绕大语言模型的训练、优化与应用展开研究。关注模型能力，也关注它在实际任务中的表现，让研究与真实需求保持连接。",
     features: [
@@ -13,9 +13,9 @@ export const research = {
     closing: "让每一次探索，\n更接近实际价值。",
   },
   robotics: {
-    name: "具身智能", english: "Robotics", number: "02", theme: "robotics",
+    name: "具身智能", english: "Embodied Intelligence", number: "02", theme: "robotics",
     headline: ["理解世界。", "也行动其中。"],
-    intro: "从轮式机器人到机械臂，连接本体、感知与控制，探索智能在物理世界中的更多可能。",
+    intro: "围绕轮式机器人与机械臂两种范式，开展从本体设计到算法研究的系统探索。让结构、运动与环境理解相互配合，逐步构建完整的机器人能力。",
     statement: "感知。决策。行动。\n在一个系统里相遇。",
     overview: "围绕轮式机器人与机械臂两种范式，开展从本体设计到算法研究的系统探索。让结构、运动与环境理解相互配合，逐步构建完整的机器人能力。",
     features: [
@@ -26,9 +26,9 @@ export const research = {
     closing: "从一个动作，\n走向更多可能。",
   },
   xr: {
-    name: "下一代个人终端", english: "Next-Gen XRs", number: "03", theme: "xr",
+    name: "下一代个人终端", english: "Next-Generation Personal Devices", number: "03", theme: "xr",
     headline: ["视野之外，", "是交互的新空间。"],
-    intro: "以头戴式显示器为起点，探索虚拟现实、增强现实与混合现实，让数字体验走向更广阔的空间。",
+    intro: "我们相信，头戴式显示器（HMD）为未来人机交互提供了值得探索的方向。通过硬件设计与软件优化的共同研究，思考下一代个人终端的体验与形态。",
     statement: "打开视野。\n重新想象个人终端。",
     overview: "我们相信，头戴式显示器（HMD）为未来人机交互提供了值得探索的方向。通过硬件设计与软件优化的共同研究，思考下一代个人终端的体验与形态。",
     features: [

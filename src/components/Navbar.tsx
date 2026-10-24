@@ -7,7 +7,6 @@ const links = [
   { href: "/#github", label: "GitHub" },
   { href: "/#blog", label: "博客" },
   { href: "/#values", label: "价值观" },
-  { href: "/#about", label: "关于老吴" },
 ];
 export default function Navbar() {
   const [open, setOpen] = useState(false);

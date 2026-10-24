@@ -3,7 +3,7 @@ export default function AppDownload() {
   return (
     <section id="download" className="home-section home-download">
       <div className="home-container">
-        <div className="home-section-heading"><div><p className="home-eyebrow">MADE FOR YOUR EVERYDAY</p><h2>应用下载。<br/><span>从桌面，到掌心。</span></h2></div><p>在电脑上使用 LabStudio，<br/>在手机上使用 LabApps。</p></div>
+        <div className="home-section-heading"><div><p className="home-eyebrow">BASIC APPLICATION SOFTWARE / LabSoft</p><h2>基本应用软件 LabSoft</h2></div></div>
         <div className="home-app-grid">{applications.map((app, index) => <article key={app.name} className="home-app-card">
           <p className="home-eyebrow">{app.category}</p><h3>{app.name}</h3><p className="home-app-description">{app.description}</p>
           <div className={`home-device-scene ${index === 0 ? "scene-desktop" : "scene-mobile"}`} aria-hidden="true"><div className="home-device"><div className="device-screen"><span>{index === 0 ? "LS" : "LA"}</span><i/><i/><i/></div></div><div className="device-shadow"/></div>

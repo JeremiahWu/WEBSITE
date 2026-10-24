@@ -5,7 +5,7 @@ import Services from "@/components/Services";
 import AppDownload from "@/components/AppDownload";
 import Blog from "@/components/Blog";
 import GitHub from "@/components/GitHub";
-import StoryLinks from "@/components/StoryLinks";
+import Values from "@/components/Values";
 import Footer from "@/components/Footer";
 
 export default function Home() {
@@ -18,7 +18,7 @@ export default function Home() {
       <AppDownload />
       <GitHub />
       <Blog />
-      <StoryLinks />
+      <Values />
       </main>
       <Footer />
     </div>
