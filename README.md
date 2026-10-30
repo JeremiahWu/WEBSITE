@@ -205,3 +205,7 @@ git diff --check
 相关项目包括 CLOUD 云服务器服务栈、LabStudio 桌面应用、LabApps 移动应用；后端 API 独立部署，不在本仓库范围内。
 
 © 2013–2026 老吴咖啡实验室 LAOWU-CAFE Labs
+
+### 品牌 LOGO 加载优化
+
+导航栏、首页主视觉、页脚和浏览器/Apple 图标统一引用 `/images/laowu-cafe-logo-448.png`，采用448×252透明PNG（144295字节，约141KiB），对应邮件第一次压缩方式。相对旧品牌源图1385723字节减少89.6%；保留 Next Image 的响应式 WebP 优化，本机256px响应约19816字节。旧 `/images/laowu-cafe-logo.png` 和 `/images/logo.png` 路径保留兼容，但内容也换为同一压缩图。应用图标、二维码和其他图片不变。
