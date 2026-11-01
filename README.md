@@ -54,23 +54,11 @@ npm run dev
 
 ## 应用安装包与下载入口
 
-LabStudio 面向 Windows、macOS；LabApps 面向 Android、iOS。配置位于 `src/config/downloads.ts`。当前所有 `url` 均为 `null`，显示禁用的“即将提供”按钮；设备画面为概念示意。
+应用显示名称统一为“老吴咖啡实验室”。LabStudio 提供 Windows x64、macOS Apple Silicon/Intel、Linux x64 下载；LabApps 提供 Android APK，iOS 暂未开放。首页下载区和 `/download` 共用 `src/config/downloads.ts`。
 
-| 应用 | 平台 | 预留文件位置 | 发布后的 URL |
-|------|------|--------------|-------------|
-| LabStudio | Windows | `public/downloads/labstudio/windows/LabStudio-Setup.exe` | `/downloads/labstudio/windows/LabStudio-Setup.exe` |
-| LabStudio | macOS | `public/downloads/labstudio/macos/LabStudio.dmg` | `/downloads/labstudio/macos/LabStudio.dmg` |
-| LabApps | Android | `public/downloads/labapps/android/LabApps.apk` | `/downloads/labapps/android/LabApps.apk` |
-| LabApps | iOS | `public/downloads/labapps/ios/` | 根据实际分发方式填写 |
+先构建两个客户端，再执行 `npm run downloads:sync` 和 `npm run build`。下载清单、版本、大小和 SHA-256 自动同步，构建前校验五个安装包，避免发布失效链接。安装包本身不提交 Git；Docker 镜像构建时必须在工作目录中备齐 `public/downloads/` 下的文件。
 
-发布步骤：
-
-1. 将安装包复制到预留目录，文件名也可自行调整。
-2. 将对应平台的 `url: null as string | null` 改为实际 URL。`path` 仅记录预留位置，不会自动启用入口。
-3. 重新构建、推送镜像并部署；Dockerfile 会将 `public` 中的安装包复制到镜像。
-4. 验证入口与文件下载。
-
-iOS 的入口应使用实际可用的 App Store、TestFlight 或已配置的签名分发地址；网页下载 IPA 本身不等于可以安装。
+完整打包、签名备份和部署步骤见 [DOWNLOADS.md](DOWNLOADS.md)。所有客户端发布包均连接 `https://api.laowu.cafe`。
 
 ## Docker Hub 构建与发布
 

@@ -188,7 +188,13 @@ server-deploy-key
 # Independent local Sites checkout (not part of this application's source)
 /sites/laowu-cafe/
 
-# public/downloads stays tracked: packages are bundled into the website image.
+# Installer binaries stay local; Docker still copies them into the website image.
+/public/downloads/**/*.exe
+/public/downloads/**/*.dmg
+/public/downloads/**/*.AppImage
+/public/downloads/**/*.apk
+/public/downloads/**/*.zip
+/public/downloads/**/*.tar.gz
 
 # Local visual verification artifacts
 /screenshots/

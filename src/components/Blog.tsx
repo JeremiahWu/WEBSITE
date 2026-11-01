@@ -7,8 +7,8 @@ export default function Blog() {
         <div>
           <p className="home-eyebrow">BLOG</p>
           <h2>博客</h2>
-          <p className="home-github-copy">建立一片新的原野</p>
-          <a href={contact.blog} target="_blank" rel="noopener noreferrer" className="home-button">阅读我的博客 <span aria-hidden="true">↗</span></a>
+          <p className="home-github-copy">浏览文章、按分类筛选或搜索内容。</p>
+          <a href={contact.blog} target="_blank" rel="noopener noreferrer" className="home-button">阅读博客 <span aria-hidden="true">↗</span></a>
         </div>
         <a href={contact.blog} target="_blank" rel="noopener noreferrer" className="home-blog-card" aria-label="访问老吴的博客（新标签页）">
           <span className="home-blog-label">LAOWU’S BLOG</span>

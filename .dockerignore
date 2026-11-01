@@ -14,3 +14,10 @@ sites
 *.tsbuildinfo
 *.log
 .DS_Store
+
+# Local credentials and generated artifacts
+screenshots
+artifacts
+*.p12
+*.pfx
+._*

@@ -6,12 +6,17 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
-    "start": "next start -p 3000"
+    "start": "next start -p 3000",
+    "downloads:sync": "node scripts/sync-downloads.mjs",
+    "downloads:verify": "node scripts/check-downloads.mjs",
+    "prebuild": "node scripts/prepare-build.mjs && npm run downloads:verify",
+    "postbuild": "npm run downloads:verify"
   },
   "dependencies": {
     "next": "^14.2.0",
     "react": "^18.3.0",
-    "react-dom": "^18.3.0"
+    "react-dom": "^18.3.0",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

@@ -3,7 +3,7 @@ import BrandLogo from "@/components/BrandLogo";
 import { useState } from "react";
 const links = [
   { href: "/#services", label: "研究方向" },
-  { href: "/#download", label: "应用下载" },
+  { href: "/download", label: "应用下载" },
   { href: "/#github", label: "GitHub" },
   { href: "/#blog", label: "博客" },
   { href: "/#values", label: "价值观" },
